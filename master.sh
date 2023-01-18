@@ -2,15 +2,15 @@
 
 echo "Provisioning master.sh ..."
 
-PUBLIC_IP=$(ifconfig eth1 | grep 'inet ' | awk -F' ' '{ print $2 }')
+IP_ADDR=$(ifconfig eth1 | grep 'inet ' | awk -F' ' '{ print $2 }')
 USER=vagrant
 
 ################################################################################
 # Step 1: kubeadm init
 kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers
 kubeadm init \
-    --apiserver-advertise-address=${PUBLIC_IP} \
-    --apiserver-cert-extra-sans=${PUBLIC_IP} \
+    --apiserver-advertise-address="${IP_ADDR}" \
+    --apiserver-cert-extra-sans="${IP_ADDR}" \
     --image-repository=registry.aliyuncs.com/google_containers \
     --pod-network-cidr=10.244.0.0/16 \
 

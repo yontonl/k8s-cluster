@@ -4,8 +4,6 @@ echo "Provisioning common.sh ..."
 
 ################################################################################
 # Step 1: environment settings
-rm -f /etc/hosts
-ln -sf /vagrant/hosts /etc/hosts
 cat >> /etc/hosts <<EOF
 $(ifconfig eth1 | grep 'inet ' | awk -F' ' '{ print $2 }') $(hostname)
 EOF
@@ -28,8 +26,8 @@ yum install -y vim wget curl net-tools bind-utils bash-completion ipvsadm
 # Step 2: kernel modules and settings
 modules='overlay br_netfilter ip_vs ip_vs_rr ip_vs_wrr ip_vs_sh nf_conntrack_ipv4'
 for module in ${modules}; do
-    if ! lsmod | grep -q ${module}; then
-        modprobe ${module}
+    if ! lsmod | grep -q "${module}"; then
+        modprobe "${module}"
         echo "${module}" | tee -a /etc/modules-load.d/k8s.conf
     fi
 done
@@ -68,6 +66,7 @@ containerd config default > /etc/containerd/config.toml
 sed -i 's#k8s.gcr.io#registry.aliyuncs.com/google_containers#g' /etc/containerd/config.toml
 sed -i 's#registry.k8s.io#registry.aliyuncs.com/google_containers#g' /etc/containerd/config.toml
 sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
+sed -i 's#config_path = ""#config_path = "/etc/containerd/certs.d"#g' /etc/containerd/config.toml
 
 systemctl restart containerd
 systemctl enable containerd
@@ -92,4 +91,6 @@ timeout: 10
 debug: false
 EOF
 
-PUBLIC_IP=$(ifconfig eth1 | grep 'inet ' | awk -F' ' '{ print $2 }')
+################################################################################
+# Step 6: add private container registry certs
+ln -sf /vagrant/registry/certs /etc/containerd/certs.d

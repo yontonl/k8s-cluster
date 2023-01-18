@@ -1,3 +1,5 @@
 join.sh
 .vagrant/
 hosts
+*.env
+*/certs/
