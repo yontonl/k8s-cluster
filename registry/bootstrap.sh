@@ -9,24 +9,27 @@ else
     exit 1
 fi
 
-REGISTRY_DOMAIN="registry.k8s.local"
+K8S_REGISTRY_HOST="registry.k8s.local"
 sudo tee -a /etc/hosts <<EOF
-127.0.0.1 ${REGISTRY_DOMAIN}
+127.0.0.1 ${K8S_REGISTRY_HOST}
 EOF
 
-openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
-  -keyout "$(pwd)/certs/${REGISTRY_DOMAIN}/${REGISTRY_DOMAIN}.key" \
-  -out "$(pwd)/certs/${REGISTRY_DOMAIN}/${REGISTRY_DOMAIN}.crt" \
-  -subj "/CN=${REGISTRY_DOMAIN}" \
-  -addext "subjectAltName = DNS:${REGISTRY_DOMAIN}"
+if [ ! -d "$(pwd)/certs/${K8S_REGISTRY_HOST}" ]; then
+  mkdir -p "$(pwd)/certs/${K8S_REGISTRY_HOST}"
+  openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
+    -keyout "$(pwd)/certs/${K8S_REGISTRY_HOST}/${K8S_REGISTRY_HOST}.key" \
+    -out "$(pwd)/certs/${K8S_REGISTRY_HOST}/${K8S_REGISTRY_HOST}.crt" \
+    -subj "/CN=${K8S_REGISTRY_HOST}" \
+    -addext "subjectAltName = DNS:${K8S_REGISTRY_HOST}"
+fi
 
 $BUILDER run -d \
   --restart=always \
   --name registry \
-  -v "$(pwd)"/certs/${REGISTRY_DOMAIN}:/certs \
+  -v "$(pwd)"/certs/${K8S_REGISTRY_HOST}:/certs \
   -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
-  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/${REGISTRY_DOMAIN}.crt \
-  -e REGISTRY_HTTP_TLS_KEY=/certs/${REGISTRY_DOMAIN}.key \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/${K8S_REGISTRY_HOST}.crt \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/${K8S_REGISTRY_HOST}.key \
   -e REGISTRY_STORAGE_DELETE_ENABLED=true \
   -p 443:443 \
   registry:2

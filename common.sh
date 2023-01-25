@@ -5,7 +5,13 @@ echo "Provisioning common.sh ..."
 ################################################################################
 # Step 1: environment settings
 cat >> /etc/hosts <<EOF
-$(ifconfig eth1 | grep 'inet ' | awk -F' ' '{ print $2 }') $(hostname)
+192.168.10.242 registry.k8s.local
+192.168.10.160 master.k8s.local
+192.168.10.161 worker-1.k8s.local
+192.168.10.162 worker-2.k8s.local
+192.168.10.163 worker-3.k8s.local
+192.168.10.164 worker-4.k8s.local
+192.168.10.165 worker-5.k8s.local
 EOF
 
 timedatectl set-timezone Asia/Shanghai
@@ -52,45 +58,3 @@ systemctl disable firewalld
 
 setenforce 0
 sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-
-################################################################################
-# Step 4: install containerd
-yum install -y yum-utils device-mapper-persistent-data lvm2
-yum-config-manager --add-repo https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo
-sed -i 's#download.docker.com#mirrors.tuna.tsinghua.edu.cn/docker-ce#g' /etc/yum.repos.d/docker-ce.repo
-
-yum install -y containerd.io
-
-mkdir -p /etc/containerd
-containerd config default > /etc/containerd/config.toml
-sed -i 's#k8s.gcr.io#registry.aliyuncs.com/google_containers#g' /etc/containerd/config.toml
-sed -i 's#registry.k8s.io#registry.aliyuncs.com/google_containers#g' /etc/containerd/config.toml
-sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
-sed -i 's#config_path = ""#config_path = "/etc/containerd/certs.d"#g' /etc/containerd/config.toml
-
-systemctl restart containerd
-systemctl enable containerd
-
-################################################################################
-# Step 5: install kubeadm, kubelet and kubectl
-cat > /etc/yum.repos.d/kubernetes.repo <<EOF
-[kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-x86_64
-enabled=1
-gpgcheck=0
-EOF
-
-yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
-systemctl enable kubelet
-
-cat > /etc/crictl.yaml <<EOF
-runtime-endpoint: unix:///run/containerd/containerd.sock
-image-endpoint: unix:///run/containerd/containerd.sock
-timeout: 10
-debug: false
-EOF
-
-################################################################################
-# Step 6: add private container registry certs
-ln -sf /vagrant/registry/certs /etc/containerd/certs.d
