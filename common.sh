@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "Provisioning common.sh ..."
+echo "Provisioning common.sh..."
 
 ################################################################################
 # Step 1: environment settings
@@ -73,6 +73,8 @@ systemctl enable containerd
 
 ################################################################################
 # Step 5: install kubeadm, kubelet and kubectl
+KUBE_VERSION=1.22.17
+
 cat > /etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes]
 name=Kubernetes
@@ -81,7 +83,7 @@ enabled=1
 gpgcheck=0
 EOF
 
-yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+yum install -y kubelet-$KUBE_VERSION kubeadm-$KUBE_VERSION kubectl-$KUBE_VERSION --disableexcludes=kubernetes
 systemctl enable kubelet
 
 cat > /etc/crictl.yaml <<EOF
@@ -94,3 +96,7 @@ EOF
 ################################################################################
 # Step 6: add private container registry certs
 ln -sf /vagrant/registry/certs /etc/containerd/certs.d
+
+################################################################################
+# Step 7: install nfs
+yum install -y nfs-utils
